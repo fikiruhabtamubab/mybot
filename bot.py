@@ -16,8 +16,10 @@ from telegram.ext import (
 from telegram.error import BadRequest, Forbidden
 
 # --- Configuration ---
-ADMIN_ID = 5815604554
-BOT_API_KEY = "8222534791:AAGlwK0Dl0Oc2Pw7k4Bx-8in9oi3BvVp5Wc" # Replace with your actual Bot API Key
+TELEGRAM_BOT_TOKEN = os.getenv("8222534791:AAGlwK0Dl0Oc2Pw7k4Bx-8in9oi3BvVp5Wc") 
+ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", 5815604554))# Replace with your actual Bot API Key
+DATA_DIR = os.getenv("DATA_DIR", "data") if not os.path.exists(DATA_DIR): os.makedirs(DATA_DIR)
+
 
 REFERRAL_BONUS = 0.05
 DAILY_BONUS = 0.05
@@ -735,3 +737,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
