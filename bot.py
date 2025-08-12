@@ -17,7 +17,7 @@ from telegram.error import BadRequest, Forbidden
 
 # --- Configuration ---
 ADMIN_ID = 5815604554
-BOT_API_KEY = "8222534791:AAGlwK0Dl0Oc2Pw7k4Bx-8in9oi3BvVp5Wc" # Replace with your actual Bot API Key
+BOT_API_KEY = "8355685878:AAFHxGMTs8aAA71XQmk4oztuIn-6YaOVJFE" # Replace with your actual Bot API Key
 
 REFERRAL_BONUS = 0.05
 DAILY_BONUS = 0.05
@@ -756,3 +756,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
