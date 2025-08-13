@@ -16,8 +16,9 @@ from telegram.ext import (
 from telegram.error import BadRequest, Forbidden
 
 # --- Configuration ---
-ADMIN_ID = 5815604554
-BOT_API_KEY = "8355685878:AAFHxGMTs8aAA71XQmk4oztuIn-6YaOVJFE" # Replace with your actual Bot API Key
+# IMPORTANT: Replace with your new, valid Bot API Key from BotFather
+BOT_API_KEY = "8355685878:AAFHxGMTs8aAA71XQmk4oztuIn-6YaOVJFE"
+ADMIN_ID = 5815604554  # Replace with your Telegram User ID
 
 REFERRAL_BONUS = 0.05
 DAILY_BONUS = 0.05
@@ -425,7 +426,6 @@ async def get_tracked_url_and_save(update: Update, context: ContextTypes.DEFAULT
     with sqlite3.connect(DB_FILE, check_same_thread=False) as conn:
         c = conn.cursor()
         try:
-            # [FIX] Explicitly set the status to 'active' on insertion for reliability.
             c.execute("INSERT INTO forced_channels (channel_name, channel_id, channel_url, status) VALUES (?, ?, ?, 'active')", (data['tracked_name'], data['tracked_id'], update.message.text));
             conn.commit()
             await update.message.reply_text(f"✅ Main channel '{data['tracked_name']}' is now being tracked.", reply_markup=get_admin_keyboard())
@@ -557,7 +557,6 @@ async def get_coupon_tracked_url_and_save(update: Update, context: ContextTypes.
     with sqlite3.connect(DB_FILE, check_same_thread=False) as conn:
         c = conn.cursor()
         try:
-            # [FIX] Explicitly set the status to 'active' on insertion for reliability.
             c.execute("INSERT INTO coupon_forced_channels (channel_name, channel_id, channel_url, status) VALUES (?, ?, ?, 'active')", (data['coupon_tracked_name'], data['coupon_tracked_id'], update.message.text));
             conn.commit()
             await update.message.reply_text(f"✅ Coupon channel '{data['coupon_tracked_name']}' is now being tracked.", reply_markup=get_admin_keyboard())
@@ -691,9 +690,11 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 def main() -> None:
+    """Sets up and runs the bot using the simpler run_polling method."""
     setup_database()
     application = Application.builder().token(BOT_API_KEY).build()
     
+    # --- Handler Definitions ---
     user_menu_buttons = ["💰 Balance", "👥 Referral", "🎁 Daily Bonus", "📋 Tasks", "💸 Withdraw", "🎟️ Coupon Code", "👑 Admin Panel"]
     admin_menu_buttons = ["📧 Mailing", "📋 Task Management", "🎟️ Coupon Management", "📊 Bot Stats", "🏧 Withdrawals", "🔗 Main Track Management", "⬅️ Back to User Menu"]
     any_menu_button_filter = filters.Regex(f"^({'|'.join(user_menu_buttons + admin_menu_buttons)})$")
@@ -718,6 +719,7 @@ def main() -> None:
         elif text == "⬅️ Back to User Menu": await admin_back_to_user_menu(update, context)
         return ConversationHandler.END
 
+    # --- Conversation Handler Setup ---
     conv_fallbacks = [CommandHandler("cancel", cancel), MessageHandler(any_menu_button_filter, menu_interrupt)]
 
     add_task_conv = ConversationHandler(entry_points=[CallbackQueryHandler(add_task_start, pattern="^admin_add_task_start$")], states={State.GET_TASK_NAME: [MessageHandler(non_menu_text_filter, get_task_name)], State.GET_TARGET_CHAT_ID: [MessageHandler(non_menu_text_filter, get_target_chat_id)], State.GET_TASK_URL: [MessageHandler(non_menu_text_filter, get_task_url)], State.GET_TASK_REWARD: [MessageHandler(non_menu_text_filter, get_task_reward_and_save)]}, fallbacks=conv_fallbacks, per_message=False)
@@ -727,7 +729,8 @@ def main() -> None:
     add_coupon_tracked_conv = ConversationHandler(entry_points=[CallbackQueryHandler(add_coupon_tracked_channel_start, pattern="^admin_add_coupon_tracked_start$")], states={State.GET_COUPON_TRACKED_NAME: [MessageHandler(non_menu_text_filter, get_coupon_tracked_name)], State.GET_COUPON_TRACKED_ID: [MessageHandler(non_menu_text_filter, get_coupon_tracked_id)], State.GET_COUPON_TRACKED_URL: [MessageHandler(non_menu_text_filter, get_coupon_tracked_url_and_save)]}, fallbacks=conv_fallbacks, per_message=False)
     withdraw_conv = ConversationHandler(entry_points=[MessageHandler(filters.Regex("^💸 Withdraw$"), withdraw_start)], states={State.CHOOSE_WITHDRAW_NETWORK: [CallbackQueryHandler(choose_withdraw_network, pattern="^w_net_")], State.GET_WALLET_ADDRESS: [MessageHandler(non_menu_text_filter, get_wallet_address)], State.GET_WITHDRAW_AMOUNT: [MessageHandler(non_menu_text_filter, get_withdraw_amount)]}, fallbacks=conv_fallbacks, per_message=False)
     claim_coupon_conv = ConversationHandler(entry_points=[MessageHandler(filters.Regex("^🎟️ Coupon Code$"), claim_coupon_start)], states={State.AWAIT_COUPON_CODE: [MessageHandler(non_menu_text_filter, receive_coupon_code), CallbackQueryHandler(claim_coupon_start, pattern="^verify_coupon_membership$")]}, fallbacks=conv_fallbacks, per_message=False)
-
+    
+    # --- Handler Registration ---
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND & ~any_menu_button_filter, gatekeeper_handler), group=-1)
     
     application.add_handler(add_task_conv); application.add_handler(withdraw_conv); application.add_handler(mailing_conv); application.add_handler(add_tracked_conv)
@@ -751,9 +754,12 @@ def main() -> None:
     application.add_handler(CallbackQueryHandler(remove_coupon_tracked_channel_list, pattern="^admin_remove_coupon_tracked_list$"))
     
     application.add_handler(CallbackQueryHandler(button_callback_handler))
-    
+
+    # --- Start the Bot ---
+    logger.info("Bot is starting up...")
+    # This function will block until you stop the bot (e.g., with Ctrl-C)
     application.run_polling()
+    logger.info("Bot has been shut down.")
 
 if __name__ == "__main__":
     main()
-
