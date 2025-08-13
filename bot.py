@@ -1,6 +1,7 @@
 import logging
 import sqlite3
 import io
+import os
 import random
 from datetime import datetime, date
 from enum import Enum
@@ -17,7 +18,11 @@ from telegram.error import BadRequest, Forbidden
 
 # --- Configuration ---
 # IMPORTANT: Replace with your new, valid Bot API Key from BotFather
-BOT_API_KEY = "8355685878:AAFHxGMTs8aAA71XQmk4oztuIn-6YaOVJFE"
+BOT_API_KEY = os.getenv("BOT_API_KEY")
+
+# This check ensures the bot crashes with a clear message if the variable isn't set.
+if not BOT_API_KEY:
+    raise ValueError("BOT_API_KEY environment variable not found. Please set it in your Railway dashboard.")
 ADMIN_ID = 5815604554  # Replace with your Telegram User ID
 
 REFERRAL_BONUS = 0.05
@@ -763,3 +768,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
