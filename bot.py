@@ -153,18 +153,32 @@ async def check_membership_and_grant_access(update: Update, context: ContextType
             
             referrer_id = context.user_data.get('referrer_id')
             if is_new_user and referrer_id:
+                # Check if the referrer exists in the database
                 if c.execute("SELECT user_id FROM users WHERE user_id = ?", (referrer_id,)).fetchone():
+                    # SOLVED: Restructured the database transaction for clarity and correctness.
+                    
+                    # 1. Add the new user with their bonus and link to the referrer
                     c.execute("INSERT INTO users (user_id, username, balance, referred_by) VALUES (?, ?, ?, ?)", (user.id, user.username, REFERRAL_BONUS, referrer_id))
-                    c.execute("UPDATE users SET balance = balance + ?, referral_count = referral_count + 1 WHERE user_id = ?", (REFERRAL_BONUS, referrer_id)); conn.commit()
+                    
+                    # 2. Update the referrer's balance and count
+                    c.execute("UPDATE users SET balance = balance + ?, referral_count = referral_count + 1 WHERE user_id = ?", (REFERRAL_BONUS, referrer_id))
+                    
+                    # 3. Commit the transaction to save both changes atomically
+                    conn.commit()
+                    
                     welcome_message = f"🎉 Welcome aboard, {user.first_name}!\nYou joined via a referral link and have received a welcome bonus of **${REFERRAL_BONUS:.2f}**!"
                     try:
                         await context.bot.send_message(chat_id=referrer_id, text=f"✅ Success! User *{user.first_name}* joined using your link.\nYou have been awarded **${REFERRAL_BONUS:.2f}**!", parse_mode='Markdown')
                     except (Forbidden, BadRequest) as e: logger.warning(f"Could not send referral notification to {referrer_id}: {e}")
                 else:
-                    c.execute("INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)", (user.id, user.username)); conn.commit()
+                    # Referrer ID from link does not exist, so just add the new user normally
+                    c.execute("INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)", (user.id, user.username))
+                    conn.commit()
                 del context.user_data['referrer_id']
             else:
-                c.execute("INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)", (user.id, user.username)); conn.commit()
+                # Standard join for a new user without a referrer or an existing user
+                c.execute("INSERT OR IGNORE INTO users (user_id, username) VALUES (?, ?)", (user.id, user.username))
+                conn.commit()
 
             await update.effective_message.reply_text(welcome_message, reply_markup=get_user_keyboard(user.id), parse_mode='Markdown')
 
@@ -768,4 +782,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
